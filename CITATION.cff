@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this component in your work, please cite using the metadata below."
+type: software
+title: "ferpa-haystack: FERPA-Compliant Document Filter for Haystack RAG Pipelines"
+abstract: >
+  Haystack-native document filter component enforcing FERPA access control
+  at the retrieval layer. Implements two-layer identity-scoped filtering
+  (student identity matching and category authorization) with automatic
+  audit record generation per 34 CFR § 99.32. Prevents unauthorized
+  education record disclosure before documents enter the LLM context window.
+authors:
+  - family-names: "Rana"
+    given-names: "Ashutosh"
+    affiliation: "CherryRoad Technologies"
+repository-code: "https://github.com/ashutoshrana/haystack-ferpa-filter"
+license: MIT
+keywords:
+  - ferpa
+  - haystack
+  - rag
+  - compliance
+  - education
+  - higher-education
+  - document-filter
+  - access-control
+  - regulated-ai
+date-released: "2026-04-24"
