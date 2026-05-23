@@ -30,7 +30,6 @@ def _make_doc(student_id=None, institution_id=None, category=None, doc_id="d1"):
         doc.meta["category"] = category
     return doc
 
-sys.path.insert(0, "/tmp/devbuild")
 from multi_tenant_ferpa_filter import MultiTenantFERPAFilter, TenantAuthorization, MultiTenantDisclosureRecord
 
 
