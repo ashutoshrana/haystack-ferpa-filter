@@ -30,7 +30,7 @@ def _make_doc(student_id=None, institution_id=None, category=None, doc_id="d1"):
         doc.meta["category"] = category
     return doc
 
-from multi_tenant_ferpa_filter import MultiTenantFERPAFilter, TenantAuthorization, MultiTenantDisclosureRecord
+from multi_tenant_ferpa_filter import MultiTenantFERPAFilter, TenantAuthorization  # noqa: E402
 
 
 class TestTenantAuthorization:

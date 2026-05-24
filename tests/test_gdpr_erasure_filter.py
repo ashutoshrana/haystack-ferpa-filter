@@ -26,7 +26,7 @@ def _make_doc(subject_id=None, doc_id="doc_001"):
     doc.meta = {"data_subject_id": subject_id} if subject_id else {}
     return doc
 
-from gdpr_erasure_filter import GDPRRightToErasureFilter, ErasureTombstone, ErasureAuditRecord, ErasureException
+from gdpr_erasure_filter import GDPRRightToErasureFilter, ErasureTombstone, ErasureException  # noqa: E402
 
 
 class TestErasureTombstone:
