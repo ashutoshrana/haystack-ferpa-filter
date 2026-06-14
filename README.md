@@ -187,12 +187,124 @@ pipeline_restored = Pipeline.from_yaml("advising_pipeline.yaml")
 
 ---
 
+## GDPR Art. 17 Right-to-Erasure Filter
+
+The `GDPRRightToErasureFilter` component intercepts documents from data subjects who have exercised their GDPR Article 17 right to erasure. Because embedding vectors are not trivially invertible, full deletion requires a vector store re-index — this filter enforces erasure **during the gap** between the erasure request and the completed rebuild.
+
+```python
+from haystack import Pipeline
+from haystack_integrations.components.filters.ferpa_filter import (
+    GDPRRightToErasureFilter,
+    ErasureTombstone,
+)
+
+tombstone = ErasureTombstone(initial_subjects={"subject_789"})
+
+erasure_filter = GDPRRightToErasureFilter(
+    subject_id_field="data_subject_id",
+    tombstone=tombstone,
+    pipeline_context="student_rag",
+)
+
+pipeline = Pipeline()
+pipeline.add_component("retriever", my_retriever)
+pipeline.add_component("erasure_filter", erasure_filter)
+pipeline.connect("retriever.documents", "erasure_filter.documents")
+
+result = pipeline.run({"retriever": {"query_embedding": emb}})
+
+# Erased subject's documents removed from context
+docs = result["erasure_filter"]["documents"]
+
+# GDPR Art. 17(3) audit records — log to compliance system
+for record in result["erasure_filter"]["erasure_audit"]:
+    print(record.to_log_entry())
+    # "[GDPR_ERASURE_FILTER] Intercepted 2 document(s) for erased subject='subject_789' ..."
+```
+
+When an Art. 17(3) exception applies (legal obligation, legal claims, public interest, freedom of expression), pass it via `erasure_exception`:
+
+```python
+from haystack_integrations.components.filters.ferpa_filter import ErasureException
+
+GDPRRightToErasureFilter(
+    subject_id_field="data_subject_id",
+    tombstone=tombstone,
+    erasure_exception=ErasureException.LEGAL_CLAIMS,  # Art. 17(3)(e)
+)
+```
+
+---
+
+## Multi-Institution FERPA Filter (§ 99.34)
+
+The `MultiTenantFERPAFilter` supports consortium RAG pipelines where a single retrieval spans documents from multiple institutions. Each institution's documents are filtered independently against that institution's authorization scope.
+
+Cross-institution disclosure requires an explicit FERPA basis: § 99.31(a)(6)(i) (directory information to other schools) or § 99.34 (officials of other schools).
+
+```python
+from haystack import Pipeline
+from haystack_integrations.components.filters.ferpa_filter import (
+    MultiTenantFERPAFilter,
+    TenantAuthorization,
+)
+
+multi_filter = MultiTenantFERPAFilter(
+    student_id="stu_001",
+    tenant_authorizations={
+        "inst_abc": TenantAuthorization(
+            institution_id="inst_abc",
+            authorized_categories=frozenset(["academic_record"]),
+            requestor_id="advisor_007",
+        ),
+        "inst_xyz": TenantAuthorization(
+            institution_id="inst_xyz",
+            authorized_categories=frozenset(["transcript"]),
+            requestor_id="transfer_office",
+            cross_institution_basis="§99.34",  # FERPA cross-institution basis required
+        ),
+    },
+    cross_institution_mode=True,
+    home_institution_id="inst_abc",
+    pipeline_context="transfer_evaluation",
+)
+
+pipeline = Pipeline()
+pipeline.add_component("retriever", my_retriever)
+pipeline.add_component("ferpa_filter", multi_filter)
+pipeline.connect("retriever.documents", "ferpa_filter.documents")
+
+result = pipeline.run({"retriever": {"query_embedding": emb}})
+
+# Per-institution §99.32 disclosure record
+record = result["ferpa_filter"]["disclosure_record"]
+print(record.to_log_entry())
+# "[FERPA_MULTI_TENANT] student='stu_001' disclosed=3/7 institutions=['inst_abc', 'inst_xyz'] ..."
+```
+
+---
+
+## Component Summary
+
+| Component | Class | Regulation | Install |
+|-----------|-------|-----------|---------|
+| Identity + category filter | `FERPAMetadataFilter` | FERPA 34 CFR § 99.31/§ 99.32 | `pip install ferpa-haystack` |
+| Right-to-erasure filter | `GDPRRightToErasureFilter` | GDPR Art. 17(1)/17(3)/Art. 5(1)(e) | `pip install ferpa-haystack` |
+| Multi-institution filter | `MultiTenantFERPAFilter` | FERPA § 99.31(a)(6)(i)/§ 99.34 | `pip install ferpa-haystack` |
+
+---
+
 ## Regulatory Basis
 
 | Regulation | Section | What this component enforces |
 |-----------|---------|------------------------------|
 | FERPA | 34 CFR § 99.31(a)(1) | Legitimate educational interest — only authorized roles access records |
 | FERPA | 34 CFR § 99.32 | Record of disclosures — structured audit entry on every access |
+| FERPA | 34 CFR § 99.31(a)(6)(i) | Directory information disclosure to other schools (multi-tenant) |
+| FERPA | 34 CFR § 99.34 | Cross-institution disclosure to officials of other schools |
+| GDPR | Art. 17(1) | Right to erasure — erased subjects' documents blocked from LLM context |
+| GDPR | Art. 17(3) | Exceptions: legal obligation, legal claims, public interest, freedom of expression |
+| GDPR | Art. 5(1)(e) | Storage limitation — data not retained beyond erasure request |
 
 ---
 
