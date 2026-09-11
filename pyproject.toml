@@ -46,10 +46,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ashutoshrana/ferpa-haystack"
-Documentation = "https://github.com/ashutoshrana/ferpa-haystack#readme"
-"Bug Tracker" = "https://github.com/ashutoshrana/ferpa-haystack/issues"
-"Source Code" = "https://github.com/ashutoshrana/ferpa-haystack"
+Homepage = "https://github.com/ashutoshrana/haystack-ferpa-filter"
+Documentation = "https://github.com/ashutoshrana/haystack-ferpa-filter#readme"
+"Bug Tracker" = "https://github.com/ashutoshrana/haystack-ferpa-filter/issues"
+"Source Code" = "https://github.com/ashutoshrana/haystack-ferpa-filter"
 
 [tool.hatch.version]
 path = "src/haystack_integrations/components/filters/ferpa_filter/__about__.py"

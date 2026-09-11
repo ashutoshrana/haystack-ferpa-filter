@@ -6,6 +6,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.0] — Unreleased
+
+- Require complete private retrieval metadata or trusted explicit public classification.
+- Validate real SDK authorization behavior, async execution, and migration safety.
+- Gate publication on matching tag, exact-commit tests, checked artifacts, and clean wheel imports.
+
 ## [0.1.0] — 2026-04-24
 
 ### Added — Initial release

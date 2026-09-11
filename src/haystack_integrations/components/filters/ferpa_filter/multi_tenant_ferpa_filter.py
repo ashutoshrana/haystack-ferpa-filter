@@ -160,6 +160,7 @@ class MultiTenantFERPAFilter:
         return default_to_dict(
             self,
             student_id=self.student_id,
+            tenant_authorizations={key: {"institution_id": auth.institution_id, "authorized_categories": sorted(auth.authorized_categories), "requestor_id": auth.requestor_id, "cross_institution_basis": auth.cross_institution_basis} for key, auth in self.tenant_authorizations.items()},
             cross_institution_mode=self.cross_institution_mode,
             home_institution_id=self.home_institution_id,
             allow_unknown_institutions=self.allow_unknown_institutions,
@@ -171,6 +172,8 @@ class MultiTenantFERPAFilter:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "MultiTenantFERPAFilter":
+        data = {**data, "init_parameters": dict(data["init_parameters"])}
+        data["init_parameters"]["tenant_authorizations"] = {key: TenantAuthorization(**{**value, "authorized_categories": frozenset(value["authorized_categories"])}) for key, value in data["init_parameters"].get("tenant_authorizations", {}).items()}
         return default_from_dict(cls, data)
 
     @component.output_types(
@@ -199,8 +202,11 @@ class MultiTenantFERPAFilter:
             doc_institution_id = meta.get(self.institution_id_field, _SENTINEL)
 
             # Shared content with no identity metadata passes through
-            if doc_student_id is _SENTINEL and doc_institution_id is _SENTINEL:
+            if meta.get("classification") == "public" and doc_student_id is _SENTINEL and doc_institution_id is _SENTINEL:
                 authorized.append(doc)
+                continue
+
+            if not isinstance(doc_institution_id, str) or not doc_institution_id.strip() or not isinstance(meta.get(self.category_field), str) or not meta[self.category_field].strip():
                 continue
 
             # Wrong student — always blocked
@@ -248,7 +254,6 @@ class MultiTenantFERPAFilter:
             doc_category = meta.get(self.category_field, _SENTINEL)
             if (
                 auth.authorized_categories
-                and doc_category is not _SENTINEL
                 and doc_category not in auth.authorized_categories
             ):
                 logger.warning(
@@ -272,3 +277,8 @@ class MultiTenantFERPAFilter:
         )
         logger.info(record.to_log_entry())
         return {"documents": authorized, "disclosure_record": record}
+
+    @component.output_types(documents=list[Document], disclosure_record=MultiTenantDisclosureRecord)
+    async def run_async(self, documents: list[Document]) -> dict[str, Any]:
+        """Apply the same authorization in asynchronous pipelines."""
+        return self.run(documents)
