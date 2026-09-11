@@ -15,13 +15,33 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - name: Install build tools
-        run: pip install hatch twine
-      - name: Build package
-        run: hatch build
+          python-version: "3.12"
+      - name: Validate exact release commit and tag
+        env:
+          RELEASE_TAG: "${{ github.ref_name }}"
+          HAYSTACK_TELEMETRY_ENABLED: "false"
+        run: |
+          python scripts/check_release.py "$RELEASE_TAG"
+          pip install build twine -e '.[dev]'
+          pytest tests
+          pytest integration_tests
+
+      - name: Build and validate distributions
+        env:
+          RELEASE_TAG: "${{ github.ref_name }}"
+        run: |
+          python -m build
+          twine check dist/*
+          python scripts/check_release.py "$RELEASE_TAG"
+
+      - name: Install wheel in clean environment and check exports
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel-smoke"
+          "$RUNNER_TEMP/wheel-smoke/bin/pip" install dist/*.whl
+          "$RUNNER_TEMP/wheel-smoke/bin/python" -I -c "import haystack_integrations.components.filters.ferpa_filter as p; from haystack_integrations.components.filters.ferpa_filter.__about__ import __version__; from importlib.metadata import version; assert __version__ == version('ferpa-haystack') == '0.3.0'; assert all(hasattr(p, name) for name in p.__all__)"
+
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload --skip-existing dist/*
+        run: twine upload dist/*

@@ -6,3 +6,5 @@
 |---|---|---|
 | Unclassified records bypass authorization | Missing identity/category metadata implied public content | Deny incomplete private metadata; explicit public classification with no conflicting identity tags |
 | Serialized multitenant filter lost grants | to_dict omitted tenant authorizations | Serialize and reconstruct tenant maps; verify real SDK roundtrip and async parity |
+
+| Release appears successful without updated package | Reused version with skip-existing and no exact-tag gate | Use fresh versions, reject tag mismatch, test exact commit, validate distributions and clean wheel imports before upload |

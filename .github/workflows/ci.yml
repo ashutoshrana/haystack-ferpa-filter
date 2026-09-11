@@ -39,3 +39,18 @@ jobs:
           python-version: "3.12"
       - run: pip install -e '.[dev]'
       - run: pytest integration_tests
+
+  wheel-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - run: python -m build && twine check dist/* && python scripts/check_release.py
+      - name: Clean wheel imports
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel-smoke"
+          "$RUNNER_TEMP/wheel-smoke/bin/pip" install dist/*.whl
+          "$RUNNER_TEMP/wheel-smoke/bin/python" -I -c "import haystack_integrations.components.filters.ferpa_filter as p; from haystack_integrations.components.filters.ferpa_filter.__about__ import __version__; from importlib.metadata import version; assert __version__ == version('ferpa-haystack') == '0.3.0'; assert all(hasattr(p, name) for name in p.__all__)"
