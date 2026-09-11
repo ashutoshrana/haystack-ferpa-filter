@@ -27,3 +27,15 @@ jobs:
         run: hatch run test
       - name: Lint
         run: hatch run lint
+
+  real-sdk-authorization:
+    runs-on: ubuntu-latest
+    env:
+      HAYSTACK_TELEMETRY_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e '.[dev]'
+      - run: pytest integration_tests

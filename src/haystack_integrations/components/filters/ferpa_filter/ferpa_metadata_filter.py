@@ -12,8 +12,8 @@ Two filtering layers applied in sequence:
 2. Category authorization — removes documents whose category is not in the
    authorized set (e.g., only ACADEMIC_RECORD, not DISCIPLINARY).
 
-Documents with no identity metadata are treated as shared knowledge-base content
-(course catalogues, policy handbooks) and pass through unchanged.
+Public content requires classification="public" and no identity keys.
+Private content requires complete identity and category metadata.
 
 Usage::
 
@@ -106,8 +106,7 @@ class FERPAMetadataFilter:
     Two enforcement layers:
 
     1. Identity pre-filter: student_id and institution_id in Document.meta must
-       match the authorized scope. Documents with neither field are shared content
-       and pass through unchanged.
+       match the authorized scope. Documents with neither field pass only when explicitly classified public.
 
     2. Category authorization: when authorized_categories is non-empty, the
        document's category field must be in the authorized set.
@@ -224,18 +223,20 @@ class FERPAMetadataFilter:
         doc_student_id = meta.get(self.student_id_field, _SENTINEL)
         doc_institution_id = meta.get(self.institution_id_field, _SENTINEL)
 
-        # Shared content (no identity metadata) passes through
-        if doc_student_id is _SENTINEL and doc_institution_id is _SENTINEL:
+        # Only trusted, explicitly public content can omit identity metadata
+        if meta.get("classification") == "public" and doc_student_id is _SENTINEL and doc_institution_id is _SENTINEL:
             return True
 
         if doc_student_id != self.student_id:
             return False
-        if doc_institution_id is not _SENTINEL and doc_institution_id != self.institution_id:
+        if doc_institution_id != self.institution_id:
             return False
 
+        doc_category = meta.get(self.category_field)
+        if not isinstance(doc_category, str) or not doc_category.strip():
+            return False
         if self.authorized_categories:
-            doc_category = meta.get(self.category_field, _SENTINEL)
-            if doc_category is not _SENTINEL and doc_category not in self.authorized_categories:
+            if doc_category not in self.authorized_categories:
                 return False
 
         return True

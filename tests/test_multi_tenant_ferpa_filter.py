@@ -18,7 +18,7 @@ haystack_mod.default_to_dict = MagicMock(return_value={})
 sys.modules["haystack"] = haystack_mod
 sys.modules["haystack.core.component"] = haystack_mod.component
 
-def _make_doc(student_id=None, institution_id=None, category=None, doc_id="d1"):
+def _make_doc(student_id=None, institution_id=None, category="transcript", doc_id="d1"):
     doc = MagicMock()
     doc.id = doc_id
     doc.meta = {}
@@ -89,7 +89,8 @@ class TestMultiTenantFERPAFilter:
 
     def test_shared_content_passes(self):
         f = self._make_filter()
-        shared = _make_doc()  # no student_id or institution_id
+        shared = _make_doc()  # explicitly classified public, no identity tags
+        shared.meta["classification"] = "public"
         result = f.run([shared])
         assert len(result["documents"]) == 1
 

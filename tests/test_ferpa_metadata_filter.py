@@ -38,7 +38,7 @@ def wrong_student_doc() -> Document:
 
 @pytest.fixture()
 def shared_doc() -> Document:
-    return Document(content="Course Catalogue 2025", meta={})
+    return Document(content="Course Catalogue 2025", meta={"classification": "public"})
 
 
 class TestIdentityFilter:
@@ -86,12 +86,12 @@ class TestCategoryAuthorization:
         )
         assert len(default_filter.run([doc])["documents"]) == 0
 
-    def test_no_category_field_passes(self, default_filter):
+    def test_no_category_field_blocked(self, default_filter):
         doc = Document(
             content="...",
             meta={"student_id": "stu_001", "institution_id": "inst_abc"},
         )
-        assert len(default_filter.run([doc])["documents"]) == 1
+        assert len(default_filter.run([doc])["documents"]) == 0
 
     def test_empty_authorized_categories_allows_all(self):
         f = FERPAMetadataFilter(
@@ -196,7 +196,7 @@ class TestCustomFieldNames:
             student_id_field="learner_id",
             institution_id_field="campus_code",
         )
-        doc = Document(content="...", meta={"learner_id": "s1", "campus_code": "i1"})
+        doc = Document(content="...", meta={"learner_id": "s1", "campus_code": "i1", "category": "academic_record"})
         assert len(f.run([doc])["documents"]) == 1
 
     def test_custom_category_field(self):

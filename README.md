@@ -1,8 +1,10 @@
 # ferpa-haystack
 
+> Unreleased authorization hardening: see [migration and verification notes](MIGRATION.md).
+
 [![PyPI](https://img.shields.io/pypi/v/ferpa-haystack.svg)](https://pypi.org/project/ferpa-haystack/)
 [![Python](https://img.shields.io/pypi/pyversions/ferpa-haystack.svg)](https://pypi.org/project/ferpa-haystack/)
-[![Tests](https://github.com/ashutoshrana/ferpa-haystack/actions/workflows/ci.yml/badge.svg)](https://github.com/ashutoshrana/ferpa-haystack/actions/workflows/ci.yml)
+[![Tests](https://github.com/ashutoshrana/haystack-ferpa-filter/actions/workflows/ci.yml/badge.svg)](https://github.com/ashutoshrana/haystack-ferpa-filter/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/ferpa-haystack.svg)](https://pypi.org/project/ferpa-haystack/)
 
