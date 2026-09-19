@@ -137,6 +137,9 @@ class FERPAMetadataFilter:
         pipeline_context: str = "haystack_pipeline",
         raise_on_violation: bool = False,
     ) -> None:
+        for name, value in (("student_id", student_id), ("institution_id", institution_id)):
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{name} must be a non-empty string")
         self.student_id = student_id
         self.institution_id = institution_id
         self.authorized_categories = list(authorized_categories) if authorized_categories else []

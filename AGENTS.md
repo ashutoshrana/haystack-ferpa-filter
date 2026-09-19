@@ -8,3 +8,5 @@
 | Serialized multitenant filter lost grants | to_dict omitted tenant authorizations | Serialize and reconstruct tenant maps; verify real SDK roundtrip and async parity |
 
 | Release appears successful without updated package | Reused version with skip-existing and no exact-tag gate | Use fresh versions, reject tag mismatch, test exact commit, validate distributions and clean wheel imports before upload |
+
+| Malformed scope configuration matches malformed private records or applies another tenant grant | Constructors did not validate identity strings or tenant-map key agreement | Reject empty/non-string identities and tenant keys that disagree with authorization institution IDs |
