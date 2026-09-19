@@ -33,3 +33,18 @@ def test_public_and_serialized_scope():
         for candidate in [guard, restored]:
             assert candidate.run([public, conflict, allowed])["documents"] == [public, allowed]
             assert asyncio.run(candidate.run_async([public, conflict, allowed]))["documents"] == [public, allowed]
+
+
+@pytest.mark.parametrize("value", [None, "", "   ", [], 42])
+def test_invalid_configured_identity_rejected(value):
+    with pytest.raises(ValueError):
+        FERPAMetadataFilter(value, "i")
+    with pytest.raises(ValueError):
+        FERPAMetadataFilter("s", value)
+    with pytest.raises(ValueError):
+        MultiTenantFERPAFilter(value)
+
+
+def test_mismatched_tenant_grant_rejected():
+    with pytest.raises(ValueError):
+        MultiTenantFERPAFilter("s", {"tenant-b": TenantAuthorization("tenant-a")})

@@ -15,3 +15,7 @@ Run the ordinary tests and `pytest integration_tests` separately: legacy tests u
 `haystack-ferpa-filter` is the canonical repository for the existing `ferpa-haystack` distribution and `haystack_integrations.components.filters.ferpa_filter` namespace. The legacy `ferpa-haystack` repository preserves history and code but no longer publishes. Do not install both checkouts in one environment. Review and release from the canonical repository only.
 
 Multitenant serialization now retains the tenant authorization map, including categories and cross-institution basis; async execution uses the identical filter. Existing serialized configurations that omitted authorization maps still restore without grants, denying private records until configured.
+
+## Authorization configuration validation (unreleased)
+
+Single-tenant filters require non-empty string student and institution IDs; multitenant filters require a non-empty string student ID. Tenant authorization map keys must match the authorization record institution ID. Invalid configuration now raises `ValueError` during construction or deserialization rather than creating an ambiguous scope. Published package versions remain unchanged until a separately approved release.

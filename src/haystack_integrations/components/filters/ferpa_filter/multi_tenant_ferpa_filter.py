@@ -146,6 +146,11 @@ class MultiTenantFERPAFilter:
         category_field: str = "category",
         pipeline_context: str = "multi_tenant_rag",
     ) -> None:
+        if not isinstance(student_id, str) or not student_id.strip():
+            raise ValueError("student_id must be a non-empty string")
+        for key, auth in (tenant_authorizations or {}).items():
+            if not isinstance(key, str) or not key.strip() or key != auth.institution_id:
+                raise ValueError("Tenant keys must match non-empty authorization institution IDs")
         self.student_id = student_id
         self.tenant_authorizations: dict[str, TenantAuthorization] = tenant_authorizations or {}
         self.cross_institution_mode = cross_institution_mode
