@@ -38,7 +38,7 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/wheel-smoke"
           "$RUNNER_TEMP/wheel-smoke/bin/pip" install dist/*.whl
-          "$RUNNER_TEMP/wheel-smoke/bin/python" -I -c "import haystack_integrations.components.filters.ferpa_filter as p; from haystack_integrations.components.filters.ferpa_filter.__about__ import __version__; from importlib.metadata import version; assert __version__ == version('ferpa-haystack') == '0.3.0'; assert all(hasattr(p, name) for name in p.__all__)"
+          "$RUNNER_TEMP/wheel-smoke/bin/python" -I -c "import haystack_integrations.components.filters.ferpa_filter as p; from haystack_integrations.components.filters.ferpa_filter.__about__ import __version__; from importlib.metadata import version; assert __version__ == version('ferpa-haystack') == '0.3.1'; assert all(hasattr(p, name) for name in p.__all__)"
 
       - name: Publish to PyPI
         env:

@@ -6,7 +6,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.3.0] — Unreleased
+## [0.3.1] — 2026-09-19
+
+- Reject malformed configured identities and tenant authorization map keys that disagree with their institution records.
+- Validated source, runtime, wheel/sdist and release-tag versions before publication.
+
+## [0.3.0] — 2026-09-12
 
 - Require complete private retrieval metadata or trusted explicit public classification.
 - Validate real SDK authorization behavior, async execution, and migration safety.

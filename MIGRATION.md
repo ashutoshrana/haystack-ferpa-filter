@@ -16,6 +16,6 @@ Run the ordinary tests and `pytest integration_tests` separately: legacy tests u
 
 Multitenant serialization now retains the tenant authorization map, including categories and cross-institution basis; async execution uses the identical filter. Existing serialized configurations that omitted authorization maps still restore without grants, denying private records until configured.
 
-## Authorization configuration validation (unreleased)
+## Authorization configuration validation (0.3.1)
 
-Single-tenant filters require non-empty string student and institution IDs; multitenant filters require a non-empty string student ID. Tenant authorization map keys must match the authorization record institution ID. Invalid configuration now raises `ValueError` during construction or deserialization rather than creating an ambiguous scope. Published package versions remain unchanged until a separately approved release.
+Single-tenant filters require non-empty string student and institution IDs; multitenant filters require a non-empty string student ID. Tenant authorization map keys must match the authorization record institution ID. Invalid configuration now raises `ValueError` during construction or deserialization rather than creating an ambiguous scope. This validation ships in ferpa-haystack 0.3.1.
