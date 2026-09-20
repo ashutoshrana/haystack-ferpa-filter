@@ -50,6 +50,7 @@ Install:
 from __future__ import annotations
 
 import logging
+from uuid import uuid4
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -81,6 +82,7 @@ class ErasureAuditRecord:
     vector_store_rebuild_pending: bool = True
     pipeline_context: str = ""
     exception_applied: Optional[str] = None
+    audit_id: str = field(default_factory=lambda: uuid4().hex)
 
     def to_log_entry(self) -> str:
         return (
@@ -110,8 +112,7 @@ class ErasureTombstone:
         """Record an erasure request — must be called on Art. 17 receipt."""
         self._erased.add(subject_id)
         logger.info(
-            "[GDPR_ERASURE_FILTER] Tombstone added for subject=%r "
-            "(GDPR Art. 17 — right to erasure)", subject_id,
+            "[GDPR_ERASURE_FILTER] Tombstone added",
         )
 
     def remove(self, subject_id: str) -> None:
@@ -194,7 +195,7 @@ class GDPRRightToErasureFilter:
 
         if erasure_exception and not ErasureException.is_valid(erasure_exception):
             raise ValueError(
-                f"Invalid GDPR Art. 17(3) exception code: {erasure_exception!r}. "
+                "Invalid GDPR Art. 17(3) exception code. "
                 f"Permitted: {list(ErasureException._ALLOWED)}"
             )
 
@@ -223,6 +224,7 @@ class GDPRRightToErasureFilter:
             documents: Documents with erased subjects' content removed.
             erasure_audit: List of ErasureAuditRecord for any interceptions.
         """
+        audit_id = uuid4().hex
         total = len(documents)
         passed: list[Document] = []
         intercepted_by_subject: dict[str, int] = {}
@@ -240,14 +242,12 @@ class GDPRRightToErasureFilter:
                 intercepted_by_subject.setdefault(subject_id, 0)
                 intercepted_by_subject[subject_id] += 1
                 logger.info(
-                    "[GDPR_ERASURE_FILTER] Exception %r applied for subject=%r doc_id=%r",
-                    self.erasure_exception, subject_id, doc.id,
+                    "[GDPR_ERASURE_FILTER] Exception applied",
                 )
             else:
                 intercepted_by_subject[subject_id] = intercepted_by_subject.get(subject_id, 0) + 1
                 logger.warning(
-                    "[GDPR_ERASURE_FILTER] Intercepted doc_id=%r subject=%r (GDPR Art. 17)",
-                    doc.id, subject_id,
+                    "[GDPR_ERASURE_FILTER] Document intercepted",
                 )
 
         audit_records: list[ErasureAuditRecord] = []
@@ -259,11 +259,12 @@ class GDPRRightToErasureFilter:
                 vector_store_rebuild_pending=self.vector_store_rebuild_pending,
                 pipeline_context=self.pipeline_context,
                 exception_applied=self.erasure_exception,
+                audit_id=audit_id,
             )
-            logger.info(record.to_log_entry())
             audit_records.append(record)
             self._audit_records.append(record)
 
+        logger.info("[GDPR_ERASURE_FILTER] Completed audit_id=%s retrieved=%d passed=%d", audit_id, total, len(passed))
         return {"documents": passed, "erasure_audit": audit_records}
 
     @property

@@ -44,6 +44,7 @@ Regulatory basis:
 """
 
 import logging
+from uuid import uuid4
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -79,6 +80,7 @@ class FERPADisclosureRecord:
     total_disclosed: int = 0
     categories_disclosed: list[str] = field(default_factory=list)
     pipeline_context: str = "haystack_pipeline"
+    audit_id: str = field(default_factory=lambda: uuid4().hex)
 
     def to_log_entry(self) -> str:
         return (
@@ -184,6 +186,7 @@ class FERPAMetadataFilter:
             PermissionError: Only when raise_on_violation=True and unauthorized
                 documents were detected.
         """
+        audit_id = uuid4().hex
         total_retrieved = len(documents)
         authorized: list[Document] = []
 
@@ -196,12 +199,10 @@ class FERPAMetadataFilter:
         if removed > 0:
             if self.raise_on_violation:
                 raise PermissionError(
-                    f"FERPA violation: {removed} unauthorized document(s) blocked for "
-                    f"student={self.student_id!r}, institution={self.institution_id!r}."
+                    f"FERPA violation: {removed} unauthorized document(s) blocked. audit_id={audit_id}"
                 )
             logger.warning(
-                "[FERPA_FILTER] Blocked %d unauthorized document(s) student_id=%r institution_id=%r",
-                removed, self.student_id, self.institution_id,
+                "[FERPA_FILTER] Blocked %d unauthorized document(s)", removed,
             )
 
         record = FERPADisclosureRecord(
@@ -212,8 +213,9 @@ class FERPAMetadataFilter:
             total_disclosed=len(authorized),
             categories_disclosed=self._extract_categories(authorized),
             pipeline_context=self.pipeline_context,
+            audit_id=audit_id,
         )
-        logger.info(record.to_log_entry())
+        logger.info("[FERPA_FILTER] Completed audit_id=%s retrieved=%d disclosed=%d", audit_id, total_retrieved, len(authorized))
         return {"documents": authorized, "disclosure_record": record}
 
     @component.output_types(documents=list[Document], disclosure_record=FERPADisclosureRecord)

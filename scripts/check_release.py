@@ -4,10 +4,13 @@ import ast
 import sys
 import re
 import zipfile
+import tarfile
 from email.parser import BytesParser
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
+license_text = (root / "LICENSE").read_bytes()
+assert b"END OF TERMS AND CONDITIONS" in license_text, "Complete Apache license text required"
 project_text = (root / "pyproject.toml").read_text()
 project = {
     key: ast.literal_eval(match.group(1))
@@ -31,4 +34,10 @@ for wheel in (root / "dist").glob("*.whl"):
         assert metadata["Version"] == version, "Wheel version mismatch"
         assert metadata["Name"].replace("_", "-") == project["name"], "Wheel distribution mismatch"
         assert str(runtime.relative_to(root / "src")) in archive.namelist(), "Runtime module absent"
+        licenses = [n for n in archive.namelist() if n.endswith("/LICENSE")]
+        assert licenses and all(archive.read(n) == license_text for n in licenses), "Wheel license missing or changed"
+for sdist in (root / "dist").glob("*.tar.gz"):
+    with tarfile.open(sdist) as archive:
+        licenses = [m for m in archive.getmembers() if m.name.endswith("/LICENSE") and m.isfile()]
+        assert licenses and all(archive.extractfile(m).read() == license_text for m in licenses), "Source license missing or changed"
 print(version)

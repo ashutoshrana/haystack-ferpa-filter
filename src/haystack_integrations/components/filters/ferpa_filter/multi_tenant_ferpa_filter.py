@@ -43,6 +43,7 @@ Install:
 from __future__ import annotations
 
 import logging
+from uuid import uuid4
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -93,6 +94,8 @@ class MultiTenantDisclosureRecord:
     total_retrieved: int = 0
     total_disclosed: int = 0
     pipeline_context: str = ""
+
+    audit_id: str = field(default_factory=lambda: uuid4().hex)
 
     def to_log_entry(self) -> str:
         return (
@@ -217,8 +220,7 @@ class MultiTenantFERPAFilter:
             # Wrong student — always blocked
             if doc_student_id != self.student_id:
                 logger.warning(
-                    "[FERPA_MULTI_TENANT] Blocked: doc belongs to student=%r, not %r",
-                    doc_student_id, self.student_id,
+                    "[FERPA_MULTI_TENANT] Blocked: student_mismatch",
                 )
                 continue
 
@@ -232,8 +234,7 @@ class MultiTenantFERPAFilter:
                     inst_stats["disclosed"] += 1
                 else:
                     logger.warning(
-                        "[FERPA_MULTI_TENANT] Blocked: institution=%r not in tenant_authorizations",
-                        institution_id,
+                        "[FERPA_MULTI_TENANT] Blocked: institution_not_authorized",
                     )
                     inst_stats = per_institution.setdefault(institution_id or "unknown", {"disclosed": 0, "blocked": 0, "basis": "not_authorized"})
                     inst_stats["blocked"] += 1
@@ -247,9 +248,7 @@ class MultiTenantFERPAFilter:
                 and not auth.cross_institution_basis
             ):
                 logger.warning(
-                    "[FERPA_MULTI_TENANT] Blocked cross-institution doc: institution=%r "
-                    "no FERPA basis specified (requires §99.31(a)(6)(i) or §99.34)",
-                    institution_id,
+                    "[FERPA_MULTI_TENANT] Blocked: missing_cross_institution_basis",
                 )
                 inst_stats = per_institution.setdefault(institution_id, {"disclosed": 0, "blocked": 0, "basis": "missing_cross_institution_basis"})
                 inst_stats["blocked"] += 1
@@ -262,8 +261,7 @@ class MultiTenantFERPAFilter:
                 and doc_category not in auth.authorized_categories
             ):
                 logger.warning(
-                    "[FERPA_MULTI_TENANT] Blocked: category=%r not authorized for institution=%r",
-                    doc_category, institution_id,
+                    "[FERPA_MULTI_TENANT] Blocked: category_not_authorized",
                 )
                 inst_stats = per_institution.setdefault(institution_id, {"disclosed": 0, "blocked": 0, "basis": auth.cross_institution_basis or "§99.31(a)(1)"})
                 inst_stats["blocked"] += 1
@@ -280,7 +278,7 @@ class MultiTenantFERPAFilter:
             total_disclosed=len(authorized),
             pipeline_context=self.pipeline_context,
         )
-        logger.info(record.to_log_entry())
+        logger.info("[FERPA_MULTI_TENANT] Completed audit_id=%s retrieved=%d disclosed=%d", record.audit_id, total_retrieved, len(authorized))
         return {"documents": authorized, "disclosure_record": record}
 
     @component.output_types(documents=list[Document], disclosure_record=MultiTenantDisclosureRecord)
