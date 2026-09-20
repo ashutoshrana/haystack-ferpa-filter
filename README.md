@@ -86,6 +86,28 @@ For a full pipeline, connect `retriever.documents` → `ferpa_filter.documents` 
 
 ---
 
+## Run the tutorial and boundary benchmark
+
+From a checkout of this repository, install the package with `pip install -e .` and run:
+
+```bash
+HAYSTACK_TELEMETRY_ENABLED=false python examples/basic_usage.py
+HAYSTACK_TELEMETRY_ENABLED=false python -m benchmarks.retrieval_boundary --repeats 5 > boundary-results.json
+# Optional corpus-size experiments; these use actual in-memory BM25 retrieval.
+HAYSTACK_TELEMETRY_ENABLED=false python -m benchmarks.retrieval_boundary --corpus-size 1000 --repeats 5
+HAYSTACK_TELEMETRY_ENABLED=false python -m benchmarks.retrieval_boundary --corpus-size 10000 --repeats 5
+```
+
+The [no-key tutorial](examples/basic_usage.py) runs retrieval → optional filter → prompt builder → recording generator. It records model input, without calling a model or claiming answer quality. The [synthetic fixture](benchmarks/retrieval_cases.json) supplies explicit permitted IDs and unauthorized canaries.
+
+Four paths compare native attribute filters, this package's final gate, both together, and a deliberate bypass. The native baseline's null comparisons also match absent identity fields, so its `null-public` record exposes a documented difference from this package's stricter public-classification rule. This is a property of the chosen baseline predicate, not a claim that Haystack cannot implement authorization. Both protected paths must exclude unauthorized IDs **and content**; every bypass run must expose a seeded canary or the benchmark fails.
+
+JSON reports fixture hash, dependency versions, environment, corpus size, candidate counts, authorized recall, unauthorized IDs/counts, raw timings and p50/p95. Timings cover pipeline execution after one warm-up; async timings include event-loop startup. Small synthetic samples are diagnostics, not production performance evidence. Store/pipeline construction is excluded. Keep the report's versions and fixture hash when comparing runs.
+
+The [pipeline tests](integration_tests/test_pipeline_boundary.py) cover sync/async prompts and rechecking a reused candidate list after an application supplies a new grant snapshot. They do not claim provider-cache invalidation, external permission synchronization or immediate distributed revocation. Haystack 2.20 uses `AsyncPipeline`; Haystack 3.1 uses `Pipeline.run_async`, selected by capability.
+
+---
+
 ## Filtering Layers
 
 ### Layer 1 — Identity Pre-Filter
