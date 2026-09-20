@@ -1,6 +1,6 @@
 # ferpa-haystack
 
-> Unreleased authorization hardening: see [migration and verification notes](MIGRATION.md).
+> Authorization behavior and upgrade guidance: see [migration and verification notes](MIGRATION.md).
 
 [![PyPI](https://img.shields.io/pypi/v/ferpa-haystack.svg)](https://pypi.org/project/ferpa-haystack/)
 [![Python](https://img.shields.io/pypi/pyversions/ferpa-haystack.svg)](https://pypi.org/project/ferpa-haystack/)
@@ -8,9 +8,13 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/ferpa-haystack.svg)](https://pypi.org/project/ferpa-haystack/)
 
-**FERPA-compliant document filtering for Haystack RAG pipelines.**
+**Haystack components that filter retrieved documents by student identity, institution and authorized category before prompt construction.**
 
-Enforces 34 CFR § 99 identity-scoped access control at the retrieval layer — before any document reaches the LLM context window.
+Use this package when building a Haystack advising or student-services assistant that needs to restrict retrieved records. `FERPAMetadataFilter` accepts a list of Haystack `Document` objects and returns `documents` plus a `disclosure_record`; your application forwards the documents and persists the audit record. The [quick start](#quick-start) needs no model API key.
+
+**Repository and package names:** this is the maintained source repository, `haystack-ferpa-filter`; install the PyPI distribution `ferpa-haystack`. The older [ferpa-haystack repository](https://github.com/ashutoshrana/ferpa-haystack) is a legacy migration pointer. For framework-independent policies and a wider adapter collection, see [enterprise-rag-patterns](https://github.com/ashutoshrana/enterprise-rag-patterns). The [portfolio guide](https://github.com/ashutoshrana/ashutoshrana/blob/main/PROJECT_GUIDE.md) helps choose between them.
+
+**Limits:** the application must authenticate users, supply trusted scopes and metadata, and connect only filtered documents to its prompt builder. Public classification must come from trusted ingestion. Audit output must be stored by the caller. These components implement retrieval controls; they do not establish legal compliance, authenticate users or erase source records from a document store.
 
 ---
 
@@ -18,7 +22,7 @@ Enforces 34 CFR § 99 identity-scoped access control at the retrieval layer — 
 
 Standard Haystack pipelines retrieve documents and pass them directly to the LLM with no enforcement of who is allowed to see what. In higher-education deployments, this creates a structural FERPA compliance gap: a student advising chatbot may return another student's academic record, financial aid details, or disciplinary history in response to a query.
 
-This component closes that gap by adding a two-layer compliance filter between your retriever and your LLM.
+This component adds identity and category checks between your retriever and prompt builder; bypassing that path bypasses its protection.
 
 ---
 
@@ -39,7 +43,7 @@ FERPAMetadataFilter
      └── disclosure_record ──────► Audit log (34 CFR § 99.32)
 ```
 
-**Documents without identity metadata** (course catalogues, policy handbooks) pass through both layers unchanged — shared knowledge-base content is never blocked.
+**Missing private metadata is denied.** Shared documents must explicitly carry `classification="public"` and omit both identity keys. See [migration notes](MIGRATION.md) before upgrading older pipelines.
 
 ---
 
@@ -54,38 +58,31 @@ pip install ferpa-haystack
 ## Quick Start
 
 ```python
-from haystack import Pipeline
-from haystack.components.generators import OpenAIGenerator
-from haystack.components.retrievers import InMemoryEmbeddingRetriever
-from haystack.document_stores.in_memory import InMemoryDocumentStore
+from haystack import Document
 from haystack_integrations.components.filters.ferpa_filter import FERPAMetadataFilter
-
-doc_store = InMemoryDocumentStore()
 
 ferpa_filter = FERPAMetadataFilter(
     student_id="stu_001",
     institution_id="univ_abc",
-    authorized_categories=["academic_record", "financial_aid"],
+    authorized_categories=["academic_record"],
     requesting_user_id="advisor_007",
 )
-
-pipeline = Pipeline()
-pipeline.add_component("retriever", InMemoryEmbeddingRetriever(doc_store))
-pipeline.add_component("ferpa_filter", ferpa_filter)
-pipeline.add_component("llm", OpenAIGenerator(model="gpt-4o"))
-
-pipeline.connect("retriever.documents", "ferpa_filter.documents")
-pipeline.connect("ferpa_filter.documents", "llm.documents")
-
-result = pipeline.run({"retriever": {"query_embedding": query_emb}})
-
-# Only stu_001's authorized records reached the LLM
-authorized_docs = result["ferpa_filter"]["documents"]
-
-# 34 CFR § 99.32 audit entry — log this to your compliance system
-audit_record = result["ferpa_filter"]["disclosure_record"]
-print(audit_record.to_log_entry())
+documents = [
+    Document(content="GPA: 3.85", meta={"student_id": "stu_001",
+        "institution_id": "univ_abc", "category": "academic_record"}),
+    Document(content="Another student's record", meta={"student_id": "stu_002",
+        "institution_id": "univ_abc", "category": "academic_record"}),
+    Document(content="Graduation requires 120 credits",
+        meta={"classification": "public"}),
+]
+result = ferpa_filter.run(documents=documents)
+assert [doc.content for doc in result["documents"]] == [
+    "GPA: 3.85", "Graduation requires 120 credits",
+]
+audit_record = result["disclosure_record"]  # Persist in your audit system.
 ```
+
+For a full pipeline, connect `retriever.documents` → `ferpa_filter.documents` → `prompt.documents`, then `prompt.prompt` → `llm.prompt`. A text generator consumes the built prompt, not a `documents` input. The [real SDK authorization tests](integration_tests/test_authorization.py) demonstrate pipeline wiring, async execution and serialization without live model calls. See [configuration](#configuration), [component summary](#component-summary) and [migration notes](MIGRATION.md) for additional components and scope rules.
 
 ---
 
@@ -97,13 +94,13 @@ Documents are matched against `student_id` and `institution_id` metadata fields.
 
 | Document metadata | Outcome |
 |-------------------|---------|
-| No `student_id` or `institution_id` | **Pass** — treated as shared content |
-| `student_id` matches | **Continue to Layer 2** |
-| `student_id` does not match | **Blocked** |
+| Explicit `classification="public"`, neither identity key present | **Pass** — trusted shared content |
+| Both identity fields match configured scope | **Continue to Layer 2** |
+| Missing, malformed or mismatched private identity fields | **Blocked** |
 
 ### Layer 2 — Category Authorization
 
-When `authorized_categories` is non-empty, the document's `category` field must be in the authorized set.
+Private documents must carry a non-empty category string. When `authorized_categories` is non-empty, the document's `category` field must also be in that set; an empty configured list permits all categories, not missing category metadata.
 
 ```python
 # Only academic records and financial aid — disciplinary records are blocked
