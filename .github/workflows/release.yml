@@ -5,13 +5,23 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
     env:
+      RELEASE_TAG: "${{ github.ref_name }}"
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -21,6 +31,7 @@ jobs:
           RELEASE_TAG: "${{ github.ref_name }}"
           HAYSTACK_TELEMETRY_ENABLED: "false"
         run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "$RELEASE_TAG^{commit}")"
           python scripts/check_release.py "$RELEASE_TAG"
           pip install build twine -e '.[dev]'
           pytest tests
@@ -38,10 +49,43 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/wheel-smoke"
           "$RUNNER_TEMP/wheel-smoke/bin/pip" install dist/*.whl
-          "$RUNNER_TEMP/wheel-smoke/bin/python" -I -c "import haystack_integrations.components.filters.ferpa_filter as p; from haystack_integrations.components.filters.ferpa_filter.__about__ import __version__; from importlib.metadata import version; assert __version__ == version('ferpa-haystack') == '0.3.1'; assert all(hasattr(p, name) for name in p.__all__)"
+          "$RUNNER_TEMP/wheel-smoke/bin/python" -I -c "import haystack_integrations.components.filters.ferpa_filter as p; from haystack_integrations.components.filters.ferpa_filter.__about__ import __version__; from importlib.metadata import version; import os; assert __version__ == version('ferpa-haystack') == os.environ['RELEASE_TAG'].removeprefix('v'); assert all(hasattr(p, name) for name in p.__all__)"
 
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
+      - name: Check installed dependencies and record artifact hashes
+        run: |
+          "$RUNNER_TEMP/wheel-smoke/bin/pip" check
+          sha256sum dist/* > SHA256SUMS
+      - name: Upload verified distributions
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-release-distributions
+          path: |
+            dist/
+            SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ferpa-haystack
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download this run's verified distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: .
+          merge-multiple: true
+      - name: Verify unchanged artifact bytes
+        run: sha256sum --check SHA256SUMS
+      - name: Publish distributions and attestations with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist/
+          attestations: true
