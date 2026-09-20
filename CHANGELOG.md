@@ -6,6 +6,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.2] — Unreleased
+
+- Keep restricted identifiers out of ordinary logs/errors; correlate returned audit records with opaque IDs.
+- Include the complete Apache license and verify its distribution contents.
+- Add a no-credentials BM25 retrieval tutorial and synthetic final-prompt boundary benchmark with required bypass controls.
+- Prepare isolated trusted publishing and artifact attestations; PyPI account registration and publication remain required.
+
 ## [0.3.1] — 2026-09-19
 
 - Reject malformed configured identities and tenant authorization map keys that disagree with their institution records.
