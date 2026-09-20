@@ -131,11 +131,16 @@ class FERPADisclosureRecord:
     pipeline_context: str           # pipeline/workflow label
 ```
 
-Log it to your compliance database:
+The returned record contains identifiers and is intended for a restricted audit
+store. Ordinary component logs contain counts and an opaque correlation ID,
+not the audit record. Configure access control, retention and a dedicated
+non-propagating handler before explicitly logging the sensitive record:
 
 ```python
 import logging
 compliance_logger = logging.getLogger("ferpa.audit")
+compliance_logger.propagate = False
+# Attach your restricted audit handler before emitting this record.
 compliance_logger.info(result["ferpa_filter"]["disclosure_record"].to_log_entry())
 ```
 
