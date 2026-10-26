@@ -217,3 +217,25 @@ class TestAsync:
         async_result = await default_filter.run_async([authorized_doc, wrong_student_doc])
         assert len(sync_result["documents"]) == len(async_result["documents"])
         assert sync_result["disclosure_record"].total_disclosed == async_result["disclosure_record"].total_disclosed
+
+
+@pytest.mark.parametrize("async_mode", [False, True])
+def test_denial_keeps_correlated_zero_disclosure_audit(caplog, authorized_doc, wrong_student_doc, async_mode):
+    import asyncio
+    import logging
+
+    caplog.set_level(logging.INFO)
+    guard = FERPAMetadataFilter("stu_001", "inst_abc", raise_on_violation=True)
+    with pytest.raises(PermissionError) as exc:
+        documents = [authorized_doc, wrong_student_doc]
+        if async_mode:
+            asyncio.run(guard.run_async(documents))
+        else:
+            guard.run(documents)
+    record = exc.value.disclosure_record
+    assert record.audit_id in str(exc.value)
+    assert record.total_retrieved == 2
+    assert record.total_disclosed == 0
+    assert record.categories_disclosed == []
+    assert any(log.levelno == logging.WARNING and record.audit_id in log.getMessage() for log in caplog.records)
+    assert any(record.audit_id in log.getMessage() and "disclosed=0" in log.getMessage() for log in caplog.records)

@@ -16,3 +16,6 @@
 | Apache metadata does not match distributed license contents | LICENSE contained only the application notice | Include the complete selected license and check exact license bytes in wheel and source distributions |
 
 | A no-key example initializes a provider and boundary tests inspect only filtered documents | Tutorial required embeddings/credentials and did not observe final prompt assembly | Use real BM25 retrieval, PromptBuilder and a recording generator with explicit oracle IDs, content canaries and a required bypass control |
+
+| Denial raises with an audit ID that has no corresponding record | The violation exception preceded audit creation and omitted a record for caller persistence | Build and attach a zero-disclosure audit before raising, correlate blocked/completion logs, and test sync/async mixed batches |
+| Release workflow uses an advisory-affected or mutable publishing action | A dependency update in one repository left equivalent release workflows unchanged | Pin every publishing workflow to the verified patched action commit and validate each workflow before release |
