@@ -31,3 +31,5 @@
 | An unknown private tenant bypasses category authorization | The legacy allow_unknown_institutions branch returned records before any tenant category grant existed | Reject the permissive legacy option and require explicit TenantAuthorization while preserving trusted public classification |
 
 | Native minimum pipeline rejects multitenant document connections although direct filtering passes | Postponed run annotations became string-valued input socket types in Haystack 2.20 and earlier | Keep component socket annotations concrete and test serialized single/multitenant sockets plus real prompt pipelines on the native minimum |
+
+| Release notes omit native boundary fixes added during review | Notes were drafted before final source and SDK qualification were frozen | Reconcile the dated release entry against the final diff, native regression cases and qualification manifest before closing the release |

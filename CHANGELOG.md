@@ -6,12 +6,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.4.0] — Unreleased
+## [0.4.0] — 2026-11-02
 
-- Deny private categories when grants are omitted, None or empty; unrestricted access requires an explicit boolean choice.
-- Version serialized category policy, preserve explicit wildcard choice and reject ambiguous legacy snapshots.
-- Reject the legacy unknown-institution escape: private tenants require explicit TenantAuthorization.
+### Fixed
 
+- Deny private categories when grants are omitted, `None` or empty; an intentional wildcard requires the strict boolean `unrestricted_categories=True`.
+- Version serialized category policy with `category_contract_version=2`, preserve the explicit wildcard choice and reject ambiguous legacy snapshots. Rebuild saved policies from reviewed host grants instead of guessing prior intent.
+- Reject the legacy unknown-institution escape: private tenants require an explicit `TenantAuthorization`. Trusted explicit public records remain eligible.
+- Declare concrete multitenant document input types so native Haystack pipelines can connect retrievers after a serialization roundtrip. Postponed annotations previously exposed a string-valued socket type on older supported SDKs.
+
+### Compatibility
+
+- Require Haystack 2.3.1 or later for the component contract. Qualify full native asynchronous prompt pipelines from Haystack 2.20.0, separately from the component minimum; the current SDK snapshot tested on 2026-11-02 was Haystack 3.4.1. These snapshots do not guarantee every intermediate or future SDK release.
+- Native SDK CI covers Python 3.10/3.12; newer-interpreter core checks do not establish additional native SDK support. Core Python 3.10 compatibility remains, while patched development tooling requires Python 3.11+.
+- Review [migration guidance](MIGRATION.md) before loading saved components or replacing legacy unknown-tenant configuration.
 
 ## [0.3.3] — 2026-11-02
 
