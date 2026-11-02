@@ -40,8 +40,6 @@ Install:
     pip install haystack-ai haystack-ferpa-filter
 """
 
-from __future__ import annotations
-
 import logging
 from uuid import uuid4
 from dataclasses import dataclass, field

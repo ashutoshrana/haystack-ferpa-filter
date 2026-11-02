@@ -96,3 +96,11 @@ def test_serialized_unrestricted_is_strict(value):
     data["init_parameters"]["tenant_authorizations"]["i"]["unrestricted_categories"] = value
     with pytest.raises(ValueError, match="bool"):
         MultiTenantFERPAFilter.from_dict(data)
+
+
+@pytest.mark.parametrize("multi", [False, True])
+def test_roundtripped_component_declares_concrete_document_input(multi):
+    # Haystack 2.3.1 compares socket types without resolving annotation strings.
+    gate = MultiTenantFERPAFilter("s", {"i": TenantAuthorization("i")}) if multi else FERPAMetadataFilter("s", "i")
+    gate = type(gate).from_dict(gate.to_dict())
+    assert gate.__haystack_input__._sockets_dict["documents"].type == list[Document]

@@ -29,3 +29,5 @@
 | A saved empty category list cannot reveal whether the caller intended no grants or wildcard | Serialization collapsed omitted/None/empty policies into the same legacy permissive representation | Version the category contract and require explicit host-reviewed migration instead of guessing; preserve the deliberate wildcard choice in new snapshots |
 
 | An unknown private tenant bypasses category authorization | The legacy allow_unknown_institutions branch returned records before any tenant category grant existed | Reject the permissive legacy option and require explicit TenantAuthorization while preserving trusted public classification |
+
+| Native minimum pipeline rejects multitenant document connections although direct filtering passes | Postponed run annotations became string-valued input socket types in Haystack 2.20 and earlier | Keep component socket annotations concrete and test serialized single/multitenant sockets plus real prompt pipelines on the native minimum |
