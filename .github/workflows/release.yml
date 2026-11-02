@@ -51,6 +51,13 @@ jobs:
           "$RUNNER_TEMP/wheel-smoke/bin/pip" install dist/*.whl
           "$RUNNER_TEMP/wheel-smoke/bin/python" -I -c "import haystack_integrations.components.filters.ferpa_filter as p; from haystack_integrations.components.filters.ferpa_filter.__about__ import __version__; from importlib.metadata import version; import os; assert __version__ == version('ferpa-haystack') == os.environ['RELEASE_TAG'].removeprefix('v'); assert all(hasattr(p, name) for name in p.__all__)"
 
+      - name: Install sdist in clean environment and check exports
+        run: |
+          python -m venv "$RUNNER_TEMP/sdist-smoke"
+          "$RUNNER_TEMP/sdist-smoke/bin/pip" install dist/*.tar.gz
+          "$RUNNER_TEMP/sdist-smoke/bin/python" -I -c "import haystack_integrations.components.filters.ferpa_filter as p; from haystack_integrations.components.filters.ferpa_filter.__about__ import __version__; from importlib.metadata import version; import os; assert __version__ == version('ferpa-haystack') == os.environ['RELEASE_TAG'].removeprefix('v'); assert all(hasattr(p, name) for name in p.__all__)"
+          "$RUNNER_TEMP/sdist-smoke/bin/pip" check
+
       - name: Check installed dependencies and record artifact hashes
         run: |
           "$RUNNER_TEMP/wheel-smoke/bin/pip" check
