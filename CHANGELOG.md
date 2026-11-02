@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.3] — Unreleased
+
+- Attach a zero-disclosure audit record before raising a violation, so callers can persist the audit ID reported by the exception.
+- Correlate blocked and completion logs without exposing restricted identifiers; verify synchronous and asynchronous mixed batches.
+
 ## [0.3.2] — Unreleased
 
 - Keep restricted identifiers out of ordinary logs/errors; correlate returned audit records with opaque IDs.

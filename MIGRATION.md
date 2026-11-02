@@ -19,3 +19,7 @@ Multitenant serialization now retains the tenant authorization map, including ca
 ## Authorization configuration validation (0.3.1)
 
 Single-tenant filters require non-empty string student and institution IDs; multitenant filters require a non-empty string student ID. Tenant authorization map keys must match the authorization record institution ID. Invalid configuration now raises `ValueError` during construction or deserialization rather than creating an ambiguous scope. This validation ships in ferpa-haystack 0.3.1.
+
+## Audits on denied batches (unreleased)
+
+When `raise_on_violation=True`, a denied batch now creates its audit record before raising. Catch `PermissionError` and persist `error.disclosure_record`; its opaque `audit_id` matches the exception and ordinary completion log. A rejected batch reports zero disclosed documents and no disclosed categories, including when it contained some authorized records, because no documents were returned. Sync and async paths use the same behavior. The component does not persist this record for the caller.

@@ -30,14 +30,27 @@ jobs:
 
   real-sdk-authorization:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+        dependencies: [minimum, latest]
     env:
       HAYSTACK_TELEMETRY_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - run: pip install -e '.[dev]'
+      - if: matrix.dependencies == 'minimum'
+        name: Check component contract on declared minimum
+        run: |
+          pip install 'haystack-ai==2.0.0'
+          pytest tests
+      - if: matrix.dependencies == 'minimum'
+        name: Install minimum native async pipeline test version
+        run: pip install 'haystack-ai==2.20.0'
       - run: pytest integration_tests
 
   wheel-check:

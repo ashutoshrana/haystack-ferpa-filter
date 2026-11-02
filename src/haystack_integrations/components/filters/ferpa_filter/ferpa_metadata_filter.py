@@ -196,26 +196,28 @@ class FERPAMetadataFilter:
 
         removed = total_retrieved - len(authorized)
 
+        denied = removed > 0 and self.raise_on_violation
+        disclosed = [] if denied else authorized
         if removed > 0:
-            if self.raise_on_violation:
-                raise PermissionError(
-                    f"FERPA violation: {removed} unauthorized document(s) blocked. audit_id={audit_id}"
-                )
-            logger.warning(
-                "[FERPA_FILTER] Blocked %d unauthorized document(s)", removed,
-            )
+            logger.warning("[FERPA_FILTER] Blocked %d unauthorized document(s) audit_id=%s", removed, audit_id)
 
         record = FERPADisclosureRecord(
             student_id=self.student_id,
             institution_id=self.institution_id,
             requesting_user_id=self.requesting_user_id,
             total_retrieved=total_retrieved,
-            total_disclosed=len(authorized),
-            categories_disclosed=self._extract_categories(authorized),
+            total_disclosed=len(disclosed),
+            categories_disclosed=self._extract_categories(disclosed),
             pipeline_context=self.pipeline_context,
             audit_id=audit_id,
         )
-        logger.info("[FERPA_FILTER] Completed audit_id=%s retrieved=%d disclosed=%d", audit_id, total_retrieved, len(authorized))
+        logger.info("[FERPA_FILTER] Completed audit_id=%s retrieved=%d disclosed=%d", audit_id, total_retrieved, len(disclosed))
+        if denied:
+            error = PermissionError(
+                f"FERPA violation: {removed} unauthorized document(s) blocked. audit_id={audit_id}"
+            )
+            error.disclosure_record = record
+            raise error
         return {"documents": authorized, "disclosure_record": record}
 
     @component.output_types(documents=list[Document], disclosure_record=FERPADisclosureRecord)
