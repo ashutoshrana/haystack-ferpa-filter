@@ -50,7 +50,7 @@ FERPAMetadataFilter
 ## Installation
 
 ```bash
-pip install 'ferpa-haystack>=0.3.3'
+pip install 'ferpa-haystack>=0.4.0'
 ```
 
 ---
@@ -58,10 +58,14 @@ pip install 'ferpa-haystack>=0.3.3'
 Development tooling requires Python 3.11+; the core install remains Python 3.10+. Use the release floor to prevent backtracking to an older package with different support/security contracts:
 
 ```bash
-pip install 'ferpa-haystack[dev]>=0.3.3'
+pip install 'ferpa-haystack[dev]>=0.4.0'
 ```
 
 **Python support:** core Python 3.10+; the `dev` extra requires Python 3.11+ for patched development tooling. See [migration notes](MIGRATION.md).
+
+**Runtime qualification:** core Python 3.10 compatibility is separate from security maintenance and optional SDK coverage. For production, use a security-maintained Python release at its latest patch level (3.11+) within the qualified SDK matrix. Native SDK jobs qualify Python 3.11/3.12 separately from newer-interpreter core tests; see [CI configuration](.github/workflows/ci.yml).
+
+**Boundary upgrade:** omitted/None/empty category grants deny private categories; intentionally unrestricted access requires `unrestricted_categories=True`. Review [migration guidance](MIGRATION.md) before loading legacy pipelines or upgrading caller policy mappings.
 
 ## Quick Start
 
@@ -130,7 +134,7 @@ Documents are matched against `student_id` and `institution_id` metadata fields.
 
 ### Layer 2 — Category Authorization
 
-Private documents must carry a non-empty category string. When `authorized_categories` is non-empty, the document's `category` field must also be in that set; an empty configured list permits all categories, not missing category metadata.
+Private documents must carry a non-empty category string. The document's `category` must be in the trusted grant collection unless `unrestricted_categories=True` is explicit. Omitted, None and empty collections deny private records.
 
 ```python
 # Only academic records and financial aid — disciplinary records are blocked
@@ -182,7 +186,7 @@ compliance_logger.info(result["ferpa_filter"]["disclosure_record"].to_log_entry(
 FERPAMetadataFilter(
     student_id="stu_001",
     institution_id="univ_abc",
-    authorized_categories=["academic_record"],   # empty = all categories allowed
+    authorized_categories=["academic_record"],   # empty denies private categories
     requesting_user_id="advisor_007",            # recorded in audit log
     student_id_field="student_id",               # custom meta key
     institution_id_field="institution_id",       # custom meta key
@@ -322,9 +326,9 @@ print(record.to_log_entry())
 
 | Component | Class | Regulation | Install |
 |-----------|-------|-----------|---------|
-| Identity + category filter | `FERPAMetadataFilter` | FERPA 34 CFR § 99.31/§ 99.32 | `pip install 'ferpa-haystack>=0.3.3'` |
-| Right-to-erasure filter | `GDPRRightToErasureFilter` | GDPR Art. 17(1)/17(3)/Art. 5(1)(e) | `pip install 'ferpa-haystack>=0.3.3'` |
-| Multi-institution filter | `MultiTenantFERPAFilter` | FERPA § 99.31(a)(6)(i)/§ 99.34 | `pip install 'ferpa-haystack>=0.3.3'` |
+| Identity + category filter | `FERPAMetadataFilter` | FERPA 34 CFR § 99.31/§ 99.32 | `pip install 'ferpa-haystack>=0.4.0'` |
+| Right-to-erasure filter | `GDPRRightToErasureFilter` | GDPR Art. 17(1)/17(3)/Art. 5(1)(e) | `pip install 'ferpa-haystack>=0.4.0'` |
+| Multi-institution filter | `MultiTenantFERPAFilter` | FERPA § 99.31(a)(6)(i)/§ 99.34 | `pip install 'ferpa-haystack>=0.4.0'` |
 
 ---
 

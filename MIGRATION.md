@@ -27,3 +27,13 @@ When `raise_on_violation=True`, a denied batch now creates its audit record befo
 ## Development tools require Python 3.11+
 
 The core component remains supported on Python 3.10+. The `dev` extra requires patched filelock>=4.2.1 and therefore Python 3.11+; requesting `dev` on Python 3.10 fails resolution instead of selecting an affected older tool dependency. Python 3.10 core CI installs the package, pytest, pytest-asyncio and ruff directly without Hatch. Build/development tooling runs on newer Python.
+
+## Category and audit boundary migration (0.4.0)
+
+Omitted, `None` and empty category grants now deny private categories. An intentional trusted wildcard must set `unrestricted_categories=True`; only actual booleans are accepted (strings such as `"false"` and integers such as `1` are rejected). Explicit public classification remains an ingestion trust decision, and identity/tenant checks remain mandatory. Authenticate the caller and derive grants in the host application; this option is not authentication or legal eligibility.
+
+For single-tenant filtering, use `FERPAMetadataFilter(..., authorized_categories=["academic_record"])`; an intentional wildcard is `unrestricted_categories=True`. For multitenant filtering, choose finite `TenantAuthorization(..., authorized_categories=frozenset({"academic_record"}))` grants or explicitly set that authorization's `unrestricted_categories=True`.
+
+New serialized components include integer `category_contract_version=2`, plus each explicit wildcard choice. Legacy snapshots without the marker are rejected. Rebuild from the host's reviewed authorization policy and reserialize; do not bulk-edit the marker or infer intent from a legacy empty list/set, because it previously meant unrestricted. Unknown private institutions require an explicit trusted `TenantAuthorization`; the old `allow_unknown_institutions=True` escape now raises an actionable migration error. Explicit public records without identity tags remain eligible without creating a private-tenant grant.
+
+The minimum component SDK is Haystack 2.3.1 (older 2.0 releases match high advisory GHSA-hx9v-6r9f-w677); the full native async-pipeline test floor remains 2.20.0.

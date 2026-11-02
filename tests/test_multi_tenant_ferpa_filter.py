@@ -1,6 +1,7 @@
 """Tests for multi-tenant FERPA filter."""
 from __future__ import annotations
 import sys
+import pytest
 from unittest.mock import MagicMock
 
 # Make @component a pass-through class decorator; @component.output_types a pass-through method decorator
@@ -52,7 +53,7 @@ class TestMultiTenantFERPAFilter:
 
     def test_wrong_student_blocked(self):
         f = self._make_filter(tenant_authorizations={
-            "inst_a": TenantAuthorization("inst_a")
+            "inst_a": TenantAuthorization("inst_a", authorized_categories=frozenset({"transcript"}))
         })
         doc = _make_doc(student_id="stu_other", institution_id="inst_a")
         result = f.run([doc])
@@ -60,7 +61,7 @@ class TestMultiTenantFERPAFilter:
 
     def test_correct_student_authorized_institution(self):
         f = self._make_filter(tenant_authorizations={
-            "inst_a": TenantAuthorization("inst_a")
+            "inst_a": TenantAuthorization("inst_a", authorized_categories=frozenset({"transcript"}))
         })
         doc = _make_doc(student_id="stu_001", institution_id="inst_a")
         result = f.run([doc])
@@ -72,11 +73,9 @@ class TestMultiTenantFERPAFilter:
         result = f.run([doc])
         assert len(result["documents"]) == 0
 
-    def test_unknown_institution_allowed_when_flag_set(self):
-        f = self._make_filter(tenant_authorizations={}, allow_unknown_institutions=True)
-        doc = _make_doc(student_id="stu_001", institution_id="inst_unknown")
-        result = f.run([doc])
-        assert len(result["documents"]) == 1
+    def test_unknown_institution_wildcard_requires_migration(self):
+        with pytest.raises(ValueError, match="TenantAuthorization"):
+            self._make_filter(tenant_authorizations={}, allow_unknown_institutions=True)
 
     def test_category_filter_applied(self):
         f = self._make_filter(tenant_authorizations={
@@ -112,6 +111,7 @@ class TestMultiTenantFERPAFilter:
                 "inst_foreign": TenantAuthorization(
                     "inst_foreign",
                     cross_institution_basis="§99.34",
+                    authorized_categories=frozenset({"transcript"}),
                 )
             },
             cross_institution_mode=True,
@@ -123,7 +123,7 @@ class TestMultiTenantFERPAFilter:
 
     def test_disclosure_record_returned(self):
         f = self._make_filter(tenant_authorizations={
-            "inst_a": TenantAuthorization("inst_a")
+            "inst_a": TenantAuthorization("inst_a", authorized_categories=frozenset({"transcript"}))
         })
         doc = _make_doc(student_id="stu_001", institution_id="inst_a")
         result = f.run([doc])
@@ -133,8 +133,8 @@ class TestMultiTenantFERPAFilter:
 
     def test_multi_institution_disclosure_record(self):
         f = self._make_filter(tenant_authorizations={
-            "inst_a": TenantAuthorization("inst_a"),
-            "inst_b": TenantAuthorization("inst_b"),
+            "inst_a": TenantAuthorization("inst_a", authorized_categories=frozenset({"transcript"})),
+            "inst_b": TenantAuthorization("inst_b", authorized_categories=frozenset({"transcript"})),
         })
         docs = [
             _make_doc("stu_001", "inst_a", doc_id="d1"),

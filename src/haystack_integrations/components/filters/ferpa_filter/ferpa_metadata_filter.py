@@ -138,10 +138,17 @@ class FERPAMetadataFilter:
         category_field: str = "category",
         pipeline_context: str = "haystack_pipeline",
         raise_on_violation: bool = False,
+        unrestricted_categories: bool = False,
+        category_contract_version: int = 2,
     ) -> None:
         for name, value in (("student_id", student_id), ("institution_id", institution_id)):
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{name} must be a non-empty string")
+        if not isinstance(unrestricted_categories, bool):
+            raise ValueError("unrestricted_categories must be a bool")
+        if type(category_contract_version) is not int or category_contract_version != 2:
+            raise ValueError("Review grants and explicitly migrate category_contract_version to 2")
+        self.unrestricted_categories = unrestricted_categories
         self.student_id = student_id
         self.institution_id = institution_id
         self.authorized_categories = list(authorized_categories) if authorized_categories else []
@@ -164,10 +171,15 @@ class FERPAMetadataFilter:
             category_field=self.category_field,
             pipeline_context=self.pipeline_context,
             raise_on_violation=self.raise_on_violation,
+            unrestricted_categories=self.unrestricted_categories,
+            category_contract_version=2,
         )
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "FERPAMetadataFilter":
+        contract_version = data.get("init_parameters", {}).get("category_contract_version")
+        if type(contract_version) is not int or contract_version != 2:
+            raise ValueError("Legacy category wildcard semantics require explicit migration to contract 2")
         return default_from_dict(cls, data)
 
     @component.output_types(documents=list[Document], disclosure_record=FERPADisclosureRecord)
@@ -242,7 +254,7 @@ class FERPAMetadataFilter:
         doc_category = meta.get(self.category_field)
         if not isinstance(doc_category, str) or not doc_category.strip():
             return False
-        if self.authorized_categories:
+        if not self.unrestricted_categories:
             if doc_category not in self.authorized_categories:
                 return False
 

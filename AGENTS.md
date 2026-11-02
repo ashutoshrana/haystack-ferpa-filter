@@ -25,3 +25,7 @@
 | A release guard accepts incomplete artifacts or mismatched source-distribution identity | Validation iterated whatever artifacts happened to exist and checked only wheel metadata | Require one wheel and one sdist, stable source/tag identity and both metadata records; exercise missing, extra and mismatched archive fixtures |
 
 | Python 3.10 dev resolution selects an affected file-locking tool dependency | Patched filelock releases require Python 3.11 while Hatch permits an older fallback | Require the patched floor in dev, document dev 3.11+, and run 3.10 core CI with minimal direct test dependencies |
+
+| A saved empty category list cannot reveal whether the caller intended no grants or wildcard | Serialization collapsed omitted/None/empty policies into the same legacy permissive representation | Version the category contract and require explicit host-reviewed migration instead of guessing; preserve the deliberate wildcard choice in new snapshots |
+
+| An unknown private tenant bypasses category authorization | The legacy allow_unknown_institutions branch returned records before any tenant category grant existed | Reject the permissive legacy option and require explicit TenantAuthorization while preserving trusted public classification |
