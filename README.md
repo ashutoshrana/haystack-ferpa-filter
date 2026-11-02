@@ -63,7 +63,7 @@ pip install 'ferpa-haystack[dev]>=0.4.0'
 
 **Python support:** core Python 3.10+; the `dev` extra requires Python 3.11+ for patched development tooling. See [migration notes](MIGRATION.md).
 
-**Runtime qualification:** core Python 3.10 compatibility is separate from security maintenance and optional SDK coverage. For production, use a security-maintained Python release at its latest patch level (3.11+) within the qualified SDK matrix. Native SDK jobs qualify Python 3.11/3.12 separately from newer-interpreter core tests; see [CI configuration](.github/workflows/ci.yml).
+**Runtime qualification:** core Python 3.10 compatibility is separate from security maintenance and optional SDK coverage. For production, use a security-maintained Python release at its latest patch level (3.11+) within the qualified SDK matrix. Native SDK jobs qualify Python 3.10/3.12 separately from newer-interpreter core tests. The component minimum is Haystack 2.3.1; full native asynchronous prompt pipelines are qualified from 2.20.0. See [0.4.0 release notes](CHANGELOG.md#040--2026-11-02) and [CI configuration](.github/workflows/ci.yml).
 
 **Boundary upgrade:** omitted/None/empty category grants deny private categories; intentionally unrestricted access requires `unrestricted_categories=True`. Review [migration guidance](MIGRATION.md) before loading legacy pipelines or upgrading caller policy mappings.
 
