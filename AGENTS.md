@@ -19,3 +19,5 @@
 
 | Denial raises with an audit ID that has no corresponding record | The violation exception preceded audit creation and omitted a record for caller persistence | Build and attach a zero-disclosure audit before raising, correlate blocked/completion logs, and test sync/async mixed batches |
 | Release workflow uses an advisory-affected or mutable publishing action | A dependency update in one repository left equivalent release workflows unchanged | Pin every publishing workflow to the verified patched action commit and validate each workflow before release |
+
+| Version validation fails despite updated source, or native SDK tests see stub modules | Editable distribution metadata retains its installed version, while unit tests install SDK stubs in the same process | Reinstall editable metadata after a version bump and run unit and native integration suites in separate processes |
