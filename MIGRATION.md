@@ -23,3 +23,7 @@ Single-tenant filters require non-empty string student and institution IDs; mult
 ## Audits on denied batches (unreleased)
 
 When `raise_on_violation=True`, a denied batch now creates its audit record before raising. Catch `PermissionError` and persist `error.disclosure_record`; its opaque `audit_id` matches the exception and ordinary completion log. A rejected batch reports zero disclosed documents and no disclosed categories, including when it contained some authorized records, because no documents were returned. Sync and async paths use the same behavior. The component does not persist this record for the caller.
+
+## Development tools require Python 3.11+
+
+The core component remains supported on Python 3.10+. The `dev` extra requires patched filelock>=4.2.1 and therefore Python 3.11+; requesting `dev` on Python 3.10 fails resolution instead of selecting an affected older tool dependency. Python 3.10 core CI installs the package, pytest, pytest-asyncio and ruff directly without Hatch. Build/development tooling runs on newer Python.

@@ -21,3 +21,7 @@
 | Release workflow uses an advisory-affected or mutable publishing action | A dependency update in one repository left equivalent release workflows unchanged | Pin every publishing workflow to the verified patched action commit and validate each workflow before release |
 
 | Version validation fails despite updated source, or native SDK tests see stub modules | Editable distribution metadata retains its installed version, while unit tests install SDK stubs in the same process | Reinstall editable metadata after a version bump and run unit and native integration suites in separate processes |
+
+| A release guard accepts incomplete artifacts or mismatched source-distribution identity | Validation iterated whatever artifacts happened to exist and checked only wheel metadata | Require one wheel and one sdist, stable source/tag identity and both metadata records; exercise missing, extra and mismatched archive fixtures |
+
+| Python 3.10 dev resolution selects an affected file-locking tool dependency | Patched filelock releases require Python 3.11 while Hatch permits an older fallback | Require the patched floor in dev, document dev 3.11+, and run 3.10 core CI with minimal direct test dependencies |

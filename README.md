@@ -50,10 +50,18 @@ FERPAMetadataFilter
 ## Installation
 
 ```bash
-pip install ferpa-haystack
+pip install 'ferpa-haystack>=0.3.3'
 ```
 
 ---
+
+Development tooling requires Python 3.11+; the core install remains Python 3.10+. Use the release floor to prevent backtracking to an older package with different support/security contracts:
+
+```bash
+pip install 'ferpa-haystack[dev]>=0.3.3'
+```
+
+**Python support:** core Python 3.10+; the `dev` extra requires Python 3.11+ for patched development tooling. See [migration notes](MIGRATION.md).
 
 ## Quick Start
 
@@ -314,9 +322,9 @@ print(record.to_log_entry())
 
 | Component | Class | Regulation | Install |
 |-----------|-------|-----------|---------|
-| Identity + category filter | `FERPAMetadataFilter` | FERPA 34 CFR § 99.31/§ 99.32 | `pip install ferpa-haystack` |
-| Right-to-erasure filter | `GDPRRightToErasureFilter` | GDPR Art. 17(1)/17(3)/Art. 5(1)(e) | `pip install ferpa-haystack` |
-| Multi-institution filter | `MultiTenantFERPAFilter` | FERPA § 99.31(a)(6)(i)/§ 99.34 | `pip install ferpa-haystack` |
+| Identity + category filter | `FERPAMetadataFilter` | FERPA 34 CFR § 99.31/§ 99.32 | `pip install 'ferpa-haystack>=0.3.3'` |
+| Right-to-erasure filter | `GDPRRightToErasureFilter` | GDPR Art. 17(1)/17(3)/Art. 5(1)(e) | `pip install 'ferpa-haystack>=0.3.3'` |
+| Multi-institution filter | `MultiTenantFERPAFilter` | FERPA § 99.31(a)(6)(i)/§ 99.34 | `pip install 'ferpa-haystack>=0.3.3'` |
 
 ---
 
