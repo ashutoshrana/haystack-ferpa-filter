@@ -6,7 +6,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.3.3] — Unreleased
+## [0.4.0] — Unreleased
+
+- Deny private categories when grants are omitted, None or empty; unrestricted access requires an explicit boolean choice.
+- Version serialized category policy, preserve explicit wildcard choice and reject ambiguous legacy snapshots.
+- Reject the legacy unknown-institution escape: private tenants require explicit TenantAuthorization.
+
+
+## [0.3.3] — 2026-11-02
 
 - Attach a zero-disclosure audit record before raising a violation, so callers can persist the audit ID reported by the exception.
 - Correlate blocked and completion logs without exposing restricted identifiers; verify synchronous and asynchronous mixed batches.

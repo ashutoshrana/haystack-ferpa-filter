@@ -11,12 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        # 3.10 is legacy compatibility; 3.14 exercises the maintained core runtime.
+        python-version: ["3.10", "3.11", "3.12", "3.14"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -37,15 +38,15 @@ jobs:
     env:
       HAYSTACK_TELEMETRY_ENABLED: "false"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e . pytest pytest-asyncio
       - if: matrix.dependencies == 'minimum'
         name: Check component contract on declared minimum
         run: |
-          pip install 'haystack-ai==2.0.0'
+          pip install 'haystack-ai==2.3.1'
           pytest tests
       - if: matrix.dependencies == 'minimum'
         name: Install minimum native async pipeline test version
@@ -55,12 +56,19 @@ jobs:
   wheel-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
-      - run: pip install build twine
-      - run: python -m build && twine check dist/* && python scripts/check_release.py
+      - name: Install hash-locked release build tools
+        run: |
+          python -m venv "$RUNNER_TEMP/release-tools"
+          "$RUNNER_TEMP/release-tools/bin/python" -m pip install --require-hashes -r ci/release-build-requirements.txt
+          "$RUNNER_TEMP/release-tools/bin/python" -m pip check
+          "$RUNNER_TEMP/release-tools/bin/python" -m pip --version
+          "$RUNNER_TEMP/release-tools/bin/python" -m pip list --format=freeze
+      - run: |
+          "$RUNNER_TEMP/release-tools/bin/python" -m build --no-isolation && "$RUNNER_TEMP/release-tools/bin/python" -m twine check dist/* && python scripts/check_release.py
       - name: Clean wheel imports
         run: |
           python -m venv "$RUNNER_TEMP/wheel-smoke"

@@ -40,8 +40,6 @@ Install:
     pip install haystack-ai haystack-ferpa-filter
 """
 
-from __future__ import annotations
-
 import logging
 from uuid import uuid4
 from dataclasses import dataclass, field
@@ -68,8 +66,8 @@ class TenantAuthorization:
 
     Attributes:
         institution_id: Institution identifier (matched against document metadata).
-        authorized_categories: Set of permitted record categories. Empty means
-            all categories authorized for the student in this institution.
+        authorized_categories: Set of permitted record categories. Empty denies private categories.
+        unrestricted_categories: Explicit trusted wildcard; identity/tenant checks still apply.
         requestor_id: User or system requesting access (for §99.32 audit).
         cross_institution_basis: FERPA citation authorizing cross-institution
             disclosure. Required when student's home institution differs.
@@ -79,6 +77,11 @@ class TenantAuthorization:
     authorized_categories: frozenset[str] = field(default_factory=frozenset)
     requestor_id: str = "system"
     cross_institution_basis: str = ""
+    unrestricted_categories: bool = False
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.unrestricted_categories, bool):
+            raise ValueError("unrestricted_categories must be a bool")
 
 
 @dataclass
@@ -148,17 +151,22 @@ class MultiTenantFERPAFilter:
         institution_id_field: str = "institution_id",
         category_field: str = "category",
         pipeline_context: str = "multi_tenant_rag",
+        category_contract_version: int = 2,
     ) -> None:
         if not isinstance(student_id, str) or not student_id.strip():
             raise ValueError("student_id must be a non-empty string")
         for key, auth in (tenant_authorizations or {}).items():
             if not isinstance(key, str) or not key.strip() or key != auth.institution_id:
                 raise ValueError("Tenant keys must match non-empty authorization institution IDs")
+        if type(category_contract_version) is not int or category_contract_version != 2:
+            raise ValueError("Review grants and explicitly migrate category_contract_version to 2")
         self.student_id = student_id
         self.tenant_authorizations: dict[str, TenantAuthorization] = tenant_authorizations or {}
         self.cross_institution_mode = cross_institution_mode
         self.home_institution_id = home_institution_id
-        self.allow_unknown_institutions = allow_unknown_institutions
+        if allow_unknown_institutions is not False:
+            raise ValueError("Unknown private institutions require explicit TenantAuthorization; migrate allow_unknown_institutions to False")
+        self.allow_unknown_institutions = False
         self.student_id_field = student_id_field
         self.institution_id_field = institution_id_field
         self.category_field = category_field
@@ -168,7 +176,7 @@ class MultiTenantFERPAFilter:
         return default_to_dict(
             self,
             student_id=self.student_id,
-            tenant_authorizations={key: {"institution_id": auth.institution_id, "authorized_categories": sorted(auth.authorized_categories), "requestor_id": auth.requestor_id, "cross_institution_basis": auth.cross_institution_basis} for key, auth in self.tenant_authorizations.items()},
+            tenant_authorizations={key: {"institution_id": auth.institution_id, "authorized_categories": sorted(auth.authorized_categories), "requestor_id": auth.requestor_id, "cross_institution_basis": auth.cross_institution_basis, "unrestricted_categories": auth.unrestricted_categories} for key, auth in self.tenant_authorizations.items()},
             cross_institution_mode=self.cross_institution_mode,
             home_institution_id=self.home_institution_id,
             allow_unknown_institutions=self.allow_unknown_institutions,
@@ -176,10 +184,14 @@ class MultiTenantFERPAFilter:
             institution_id_field=self.institution_id_field,
             category_field=self.category_field,
             pipeline_context=self.pipeline_context,
+            category_contract_version=2,
         )
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "MultiTenantFERPAFilter":
+        contract_version = data.get("init_parameters", {}).get("category_contract_version")
+        if type(contract_version) is not int or contract_version != 2:
+            raise ValueError("Legacy category wildcard semantics require explicit migration to contract 2")
         data = {**data, "init_parameters": dict(data["init_parameters"])}
         data["init_parameters"]["tenant_authorizations"] = {key: TenantAuthorization(**{**value, "authorized_categories": frozenset(value["authorized_categories"])}) for key, value in data["init_parameters"].get("tenant_authorizations", {}).items()}
         return default_from_dict(cls, data)
@@ -228,16 +240,11 @@ class MultiTenantFERPAFilter:
             auth = self.tenant_authorizations.get(institution_id) if institution_id else None
 
             if auth is None:
-                if self.allow_unknown_institutions:
-                    authorized.append(doc)
-                    inst_stats = per_institution.setdefault(institution_id or "unknown", {"disclosed": 0, "blocked": 0, "basis": "allow_unknown"})
-                    inst_stats["disclosed"] += 1
-                else:
-                    logger.warning(
-                        "[FERPA_MULTI_TENANT] Blocked: institution_not_authorized",
-                    )
-                    inst_stats = per_institution.setdefault(institution_id or "unknown", {"disclosed": 0, "blocked": 0, "basis": "not_authorized"})
-                    inst_stats["blocked"] += 1
+                logger.warning("[FERPA_MULTI_TENANT] Blocked: institution_not_authorized")
+                inst_stats = per_institution.setdefault(
+                    institution_id or "unknown", {"disclosed": 0, "blocked": 0, "basis": "not_authorized"}
+                )
+                inst_stats["blocked"] += 1
                 continue
 
             # Cross-institution check
@@ -257,7 +264,7 @@ class MultiTenantFERPAFilter:
             # Category authorization
             doc_category = meta.get(self.category_field, _SENTINEL)
             if (
-                auth.authorized_categories
+                not auth.unrestricted_categories
                 and doc_category not in auth.authorized_categories
             ):
                 logger.warning(

@@ -93,7 +93,7 @@ class TestCategoryAuthorization:
         )
         assert len(default_filter.run([doc])["documents"]) == 0
 
-    def test_empty_authorized_categories_allows_all(self):
+    def test_empty_authorized_categories_denies_private(self):
         f = FERPAMetadataFilter(
             student_id="stu_001",
             institution_id="inst_abc",
@@ -103,7 +103,7 @@ class TestCategoryAuthorization:
             content="...",
             meta={"student_id": "stu_001", "institution_id": "inst_abc", "category": "disciplinary"},
         )
-        assert len(f.run([doc])["documents"]) == 1
+        assert len(f.run([doc])["documents"]) == 0
 
 
 class TestDisclosureRecord:
@@ -155,6 +155,7 @@ class TestRaiseOnViolation:
             student_id="stu_001",
             institution_id="inst_abc",
             raise_on_violation=True,
+            authorized_categories=["academic_record"],
         )
         result = f.run([authorized_doc])
         assert len(result["documents"]) == 1
@@ -194,6 +195,7 @@ class TestCustomFieldNames:
             student_id="s1",
             institution_id="i1",
             student_id_field="learner_id",
+            authorized_categories=["academic_record"],
             institution_id_field="campus_code",
         )
         doc = Document(content="...", meta={"learner_id": "s1", "campus_code": "i1", "category": "academic_record"})
